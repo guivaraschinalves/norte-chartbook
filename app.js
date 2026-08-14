@@ -7,6 +7,18 @@
     return e;
   }
 
+  function svgEl(tag, attrs) {
+    var e = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+
+  function chevronIcon() {
+    var svg = svgEl("svg", { viewBox: "0 0 16 16", width: "14", height: "14", "aria-hidden": "true", "class": "chevron" });
+    svg.appendChild(svgEl("path", { d: "M5 3l5 5-5 5", fill: "none", stroke: "currentColor", "stroke-width": "1.6", "stroke-linecap": "round", "stroke-linejoin": "round" }));
+    return svg;
+  }
+
   function slugify(s) {
     return String(s)
       .toLowerCase()
@@ -308,6 +320,16 @@
     host.innerHTML = "";
     if (nav) nav.innerHTML = "";
 
+    // Total chart count per group, for the group heading's count badge —
+    // computed up front since the render loop below only sees one section
+    // (and its own chart count) at a time.
+    var groupTotals = {};
+    SECTIONS.forEach(function (sec) {
+      if (!sec.group) return;
+      var n = CHARTS.filter(function (c) { return c.section === sec.id; }).length;
+      groupTotals[sec.group.id] = (groupTotals[sec.group.id] || 0) + n;
+    });
+
     var currentGroupId = undefined; // undefined ≠ null: forces the first iteration to (re)start a group
     var groupHost = host, navGroupHost = nav;
 
@@ -319,22 +341,44 @@
       if (groupId !== currentGroupId) {
         currentGroupId = groupId;
         if (sec.group) {
-          var groupWrap = el("div", "chart-group");
-          var groupHeading = el("div", "group-heading");
+          // A group is a native <details> disclosure — closed by default,
+          // click (or Enter/Space) on its <summary> heading opens it, no
+          // extra JS needed for the toggle itself. This applies to every
+          // group automatically, current or future, since it's driven by
+          // folder discovery, not a hardcoded name.
+          var groupWrap = el("details", "chart-group");
+          var groupHeading = el("summary", "group-heading");
           var gh1 = document.createElement("h2");
           gh1.textContent = sec.group.label;
+          var groupCount = el("span", "count");
+          var total = groupTotals[sec.group.id] || 0;
+          groupCount.textContent = total + (total === 1 ? " gráfico" : " gráficos");
           groupHeading.appendChild(gh1);
+          groupHeading.appendChild(groupCount);
+          groupHeading.appendChild(chevronIcon());
           groupWrap.appendChild(groupHeading);
           host.appendChild(groupWrap);
           groupHost = groupWrap;
 
           if (nav) {
-            var navGroupWrap = el("div", "nav-supergroup");
-            var navGroupLabel = el("div", "nav-supergroup-label");
-            navGroupLabel.textContent = sec.group.label;
+            var navGroupWrap = el("details", "nav-supergroup");
+            var navGroupLabel = el("summary", "nav-supergroup-label");
+            var navGroupText = document.createElement("span");
+            navGroupText.textContent = sec.group.label;
+            navGroupLabel.appendChild(navGroupText);
+            navGroupLabel.appendChild(chevronIcon());
             navGroupWrap.appendChild(navGroupLabel);
             nav.appendChild(navGroupWrap);
             navGroupHost = navGroupWrap;
+
+            // The main-content group and its sidebar mirror share one open
+            // state — toggling either one opens/closes both.
+            groupWrap.addEventListener("toggle", function () {
+              if (navGroupWrap.open !== groupWrap.open) navGroupWrap.open = groupWrap.open;
+            });
+            navGroupWrap.addEventListener("toggle", function () {
+              if (groupWrap.open !== navGroupWrap.open) groupWrap.open = navGroupWrap.open;
+            });
           }
         } else {
           groupHost = host;

@@ -81,8 +81,16 @@ body { background: var(--page-bg); }
 .nav-supergroup { display: flex; flex-direction: column; gap: 14px; }
 .nav-supergroup + .nav-supergroup { margin-top: 8px; padding-top: 22px; border-top: 1px solid var(--border); }
 .nav-supergroup-label {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; list-style: none;
   font-family: var(--font-serif); font-size: 0.86rem; font-weight: 500; color: var(--ink);
-  margin: 0 0 2px 10px;
+  margin: 0 0 2px 10px; padding: 2px 0;
+}
+.nav-supergroup-label::-webkit-details-marker { display: none; }
+.nav-supergroup-label .chevron { color: var(--ink-muted); flex: none; transition: transform 0.15s ease; }
+.nav-supergroup[open] > .nav-supergroup-label .chevron { transform: rotate(90deg); }
+.nav-supergroup-label:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
+@media (prefers-reduced-motion: reduce) {
+  .nav-supergroup-label .chevron { transition: none; }
 }
 .nav-group { display: flex; flex-direction: column; gap: 1px; }
 .nav-label {
@@ -132,12 +140,23 @@ h1 { font-family: var(--font-serif); font-weight: 500; font-size: 2.15rem; margi
   border-radius: 4px; padding: 1px 5px;
 }
 
-/* ---------- Groups (optional layer above themes) ---------- */
+/* ---------- Groups (optional layer above themes; collapsible) ---------- */
 .chart-group { margin-top: 62px; }
 .chart-group:first-child { margin-top: 0; }
-.group-heading { padding-bottom: 10px; border-bottom: 2px solid var(--ink); margin-bottom: 8px; }
+.group-heading {
+  display: flex; align-items: center; gap: 12px; cursor: pointer; list-style: none;
+  padding-bottom: 10px; border-bottom: 2px solid var(--ink); margin-bottom: 8px;
+}
+.group-heading::-webkit-details-marker { display: none; }
 .group-heading h2 { font-family: var(--font-serif); font-weight: 500; font-size: 1.7rem; margin: 0; text-wrap: balance; }
+.group-heading .count { font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink-muted); margin-right: auto; }
+.group-heading .chevron { color: var(--ink-muted); flex: none; transition: transform 0.15s ease; }
+.chart-group[open] > .group-heading .chevron { transform: rotate(90deg); }
+.group-heading:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
 .chart-group .theme-section:first-of-type { margin-top: 22px; }
+@media (prefers-reduced-motion: reduce) {
+  .group-heading .chevron { transition: none; }
+}
 
 /* ---------- Sections & cards ---------- */
 .theme-section { margin-top: 46px; }
