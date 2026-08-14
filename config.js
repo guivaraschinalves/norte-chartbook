@@ -4,20 +4,22 @@
 // ============================================================================
 
 var SITE_CONFIG = {
-  brandName: "Norte Research",
+  brandName: "Follow the Money",
   tagline: "Chart Book",
-  pageTitle: "Painel Macro & Mercados",
-  lede: "Gráficos exportados do PowerPoint, publicados como imagem — organizados por tema.",
-  sourceLabel: "PowerPoint",
+  pageTitle: "Balanço de Pagamentos do Brasil",
+  lede: "Conta corrente, conta financeira, conta capital e indicadores complementares — gráficos exportados do PowerPoint, publicados como imagem.",
+  sourceLabel: "BCB",
 };
 
 // ----------------------------------------------------------------------------
 // TEMAS — a ordem aqui é a ordem no site e no menu lateral.
 // ----------------------------------------------------------------------------
 var SECTIONS = [
-  { id: "juros", label: "Política monetária" },
-  { id: "inflacao", label: "Inflação" },
-  { id: "emprego", label: "Emprego" },
+  { id: "visao-geral", label: "Visão geral" },
+  { id: "conta-corrente", label: "Conta corrente" },
+  { id: "conta-financeira", label: "Conta financeira" },
+  { id: "conta-capital", label: "Conta capital" },
+  { id: "complementares", label: "Indicadores complementares" },
 ];
 
 // ----------------------------------------------------------------------------
@@ -33,8 +35,27 @@ var SECTIONS = [
 //   source   → (opcional) sobrescreve o "Fonte:" padrão do rodapé do card
 // ----------------------------------------------------------------------------
 var CHARTS = [
-  { section: "juros", title: "Juros — Fed Funds vs. Treasury 10 anos", image: "charts/juros.png" },
-  { section: "inflacao", title: "CPI", image: "charts/cpi.png" },
-  { section: "inflacao", title: "PCE — cheio vs. núcleo", image: "charts/pce.png" },
-  { section: "emprego", title: "Taxa de desemprego", image: "charts/desemprego.png" },
+  { section: "visao-geral", title: "Balanço de Pagamentos do Brasil", subtitle: "US$ bilhões, acumulado em 12 meses", image: "charts/Slide1.PNG" },
+  { section: "visao-geral", title: "Balanço de Pagamentos do Brasil", subtitle: "US$ bilhões, acumulado em 3 meses", image: "charts/Slide2.PNG" },
+  { section: "visao-geral", title: "Balanço de Pagamentos do Brasil e Taxa de Câmbio", subtitle: "US$ bilhões, acumulado em 12 meses", image: "charts/Slide3.PNG" },
+  { section: "visao-geral", title: "Saldo do Balanço de Pagamentos do Brasil", subtitle: "US$ bilhões, acumulado em 12 meses", image: "charts/Slide4.PNG" },
+  { section: "visao-geral", title: "Saldo do Balanço de Pagamentos", subtitle: "US$ bilhões, acum. 12 meses; % do PIB (dir.)", image: "charts/Slide5.PNG" },
+  { section: "visao-geral", title: "Saldo do Balanço de Pagamentos", subtitle: "US$ bilhões, acum. 3 meses; % do PIB (dir.)", image: "charts/Slide6.PNG" },
+
+  { section: "conta-corrente", title: "Conta Corrente do Brasil", subtitle: "US$ bilhões, acumulado em 12 meses", image: "charts/Slide7.PNG" },
+  { section: "conta-corrente", title: "Conta Corrente do Brasil", subtitle: "US$ bilhões, acumulado em 3 meses", image: "charts/Slide8.PNG" },
+
+  { section: "conta-financeira", title: "Conta Financeira do Brasil", subtitle: "US$ bilhões, acumulado em 12 meses", image: "charts/Slide9.PNG" },
+  { section: "conta-financeira", title: "Conta Financeira do Brasil", subtitle: "US$ bilhões, acumulado em 3 meses", image: "charts/Slide10.PNG" },
+  { section: "conta-financeira", title: "Investimento Estrangeiro Direto", subtitle: "US$ bilhões, acumulado em 12 meses", image: "charts/Slide13.PNG" },
+  { section: "conta-financeira", title: "Investimento em Carteira", subtitle: "US$ bilhões, acumulado em 12 meses", image: "charts/Slide14.PNG" },
+  { section: "conta-financeira", title: "Investimento em Carteira no Mercado Doméstico", subtitle: "US$ bilhões, acumulado em 12 meses", image: "charts/Slide16.PNG" },
+  { section: "conta-financeira", title: "Investimento em Carteira no Mercado Doméstico", subtitle: "US$ bilhões, acumulado em 3 meses", image: "charts/Slide15.PNG" },
+
+  { section: "conta-capital", title: "Conta Capital do Brasil", subtitle: "US$ bilhões, acumulado em 12 meses", image: "charts/Slide11.PNG" },
+  { section: "conta-capital", title: "Conta Capital do Brasil", subtitle: "US$ bilhões, acumulado em 3 meses", image: "charts/Slide12.PNG" },
+
+  { section: "complementares", title: "Necessidade de Capital de Curto Prazo", subtitle: "US$ bilhões (Saldo da Conta Corrente − IED no País)", image: "charts/Slide17.PNG" },
+  { section: "complementares", title: "Fluxo Externo Líquido Mensal de Criptos", subtitle: "US$ bilhões", image: "charts/Slide18.PNG" },
+  { section: "complementares", title: "Fluxo Externo Líquido Acumulado de Criptos", subtitle: "US$ bilhões, acumulado em 12 meses", image: "charts/Slide19.PNG" },
 ];

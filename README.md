@@ -30,14 +30,15 @@ README.md     → este arquivo
 **Se o slide tem só o gráfico** (a maioria dos seus casos):
 `Arquivo → Exportar → Alterar Tipo de Arquivo → PNG` (ou `Salvar Como` →
 formato PNG) → escolha **"Todos os Slides"**. O PowerPoint salva cada slide
-como um PNG separado numa pasta.
+como `Slide1.PNG`, `Slide2.PNG`, etc. — os mesmos nomes já usados em
+`config.js`, então basta substituir os arquivos em `charts/` e publicar
+(veja "Publicar" abaixo). Nada mais precisa mudar, desde que a ordem e a
+quantidade de slides continuem as mesmas.
 
-**Se o slide tem outros elementos junto** (proporção pequena, no seu caso):
-clique direito em cima do gráfico → **Salvar como Imagem** — exporta só o
-gráfico, recortado, sem o resto do slide.
-
-Renomeie cada PNG exportado para o nome esperado (veja a seção seguinte) e
-coloque na pasta `charts/`.
+**Se o slide tem outros elementos junto** (proporção pequena): clique
+direito em cima do gráfico → **Salvar como Imagem** — exporta só o
+gráfico, recortado, sem o resto do slide. Dê o nome que preferir e ajuste o
+campo `image` daquele gráfico em `config.js`.
 
 ## Adicionando ou trocando um gráfico
 
@@ -45,7 +46,7 @@ Tudo em `config.js`, sem tocar em mais nada:
 
 ```js
 var CHARTS = [
-  { section: "juros", title: "Juros — Fed Funds vs. Treasury 10 anos", image: "charts/juros.png" },
+  { section: "conta-corrente", title: "Conta Corrente do Brasil", subtitle: "US$ bilhões, acumulado em 12 meses", image: "charts/Slide7.PNG" },
   // adicione um bloco assim para cada gráfico novo
 ];
 ```
@@ -53,6 +54,10 @@ var CHARTS = [
 - `section` precisa bater com o `id` de um item em `SECTIONS` (ou crie um
   tema novo ali).
 - `image` é o caminho do arquivo PNG dentro de `charts/`.
+- Se a ordem dos slides no PowerPoint mudar, o número de cada `SlideN.PNG`
+  muda junto — reabra o deck exportado e confira qual slide é qual antes de
+  atualizar `config.js` (ou fixe a ordem dos slides no PowerPoint para não
+  precisar checar toda vez).
 - Um gráfico listado aqui sem o arquivo correspondente aparece no site como
   um aviso "Imagem não encontrada" — nunca quebra a página.
 
