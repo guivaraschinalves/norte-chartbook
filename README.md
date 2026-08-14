@@ -1,96 +1,87 @@
 # Chart Book
 
-Site estático (HTML/CSS/JS puro, sem build, sem dependências) para publicar
-gráficos de política monetária, inflação, emprego e o balanço do Fed a partir
-de uma planilha do Google Sheets — no estilo do chart book da Yardeni
-Research, com leitura interativa.
+Site estático (HTML/CSS/JS puro, sem build, sem dependências) que publica
+gráficos exportados como **imagem do PowerPoint** — no estilo do chart book
+da Yardeni Research: uma galeria organizada por tema, não gráficos
+interativos reconstruídos em código.
+
+## Por que imagem, e não gráfico interativo
+
+A primeira versão deste projeto redesenhava cada gráfico em código
+(SVG/JS), tentando reproduzir o visual do Excel/PowerPoint — o que só
+funciona bem se você reconstrói cada gráfico à mão, o que não escala.
+Sites como o do Yardeni fazem o oposto: o gráfico é desenhado **uma vez**,
+na ferramenta que já se conhece (aqui, PowerPoint), e o site só exibe a
+imagem exportada. Atualizar = reexportar e trocar o arquivo.
 
 ## Estrutura
 
 ```
-index.html    → estrutura da página (não precisa editar no dia a dia)
+index.html    → casca da página (sidebar, cabeçalho, tira de estatísticas)
 styles.css    → visual (cores, tipografia, layout)
-app.js        → motor dos gráficos + leitura da planilha (não precisa editar)
-config.js     → ← É AQUI que você mexe: marca, link da planilha e colunas
+app.js        → monta a galeria a partir de config.js + lê a planilha da tira de estatísticas
+config.js     → ← É AQUI que você mexe: marca, temas, gráficos e planilha
+charts/       → ← as imagens PNG exportadas do PowerPoint entram aqui
 README.md     → este arquivo
 ```
 
-## Como funciona
+## Como exportar os gráficos do PowerPoint
 
-Diferente da primeira versão deste projeto, **os dados vêm de uma única aba**
-publicada como CSV — cada coluna da planilha vira uma série em algum
-gráfico. Isso é o que já está configurado em `config.js`:
+**Se o slide tem só o gráfico** (a maioria dos seus casos):
+`Arquivo → Exportar → Alterar Tipo de Arquivo → PNG` (ou `Salvar Como` →
+formato PNG) → escolha **"Todos os Slides"**. O PowerPoint salva cada slide
+como um PNG separado numa pasta.
 
-- `DATA_SOURCE_URL` — o link de "Publicar na Web" (CSV) da sua aba.
-- `DATE_COLUMN` — o nome da coluna de período (`"Data"`).
-- `SERIES_CONFIG` — um mapa `chave → { column, scale }`, onde `column` é o
-  nome exato do cabeçalho na planilha e `scale` (opcional) multiplica o valor
-  lido (usado para os saldos do Fed, que vêm em US$ milhões na planilha e são
-  exibidos em US$ trilhões).
+**Se o slide tem outros elementos junto** (proporção pequena, no seu caso):
+clique direito em cima do gráfico → **Salvar como Imagem** — exporta só o
+gráfico, recortado, sem o resto do slide.
 
-Cada gráfico lê uma ou mais dessas séries e **mantém apenas as linhas em que
-todas elas têm valor** — se uma célula está em branco (dado ainda não
-divulgado), aquele mês simplesmente não entra no gráfico, em vez de mostrar
-um zero ou um furo inventado. Por isso é normal um gráfico "terminar" num mês
-mais antigo que outro: cada um respeita a defasagem de divulgação da sua
-própria fonte.
+Renomeie cada PNG exportado para o nome esperado (veja a seção seguinte) e
+coloque na pasta `charts/`.
 
-Se o link em `DATA_SOURCE_URL` estiver vazio ou a planilha não carregar por
-qualquer motivo, o site cai automaticamente para dados de exemplo (com um
-aviso visível no topo) — ele nunca quebra a página.
+## Adicionando ou trocando um gráfico
 
-## Adicionando ou trocando uma série
+Tudo em `config.js`, sem tocar em mais nada:
 
-1. Na planilha, garanta que a coluna tem um cabeçalho claro na primeira linha.
-2. Em `config.js`, adicione uma entrada em `SERIES_CONFIG` com o nome exato
-   desse cabeçalho.
-3. Em `app.js`, dentro de `renderTimeSeries()`, use essa chave num
-   `alignSeries(rows, ["suaChave", ...])` para montar um gráfico novo (copie
-   um card existente em `index.html` como ponto de partida, com um `<div
-   id="chart-...">` novo).
+```js
+var CHARTS = [
+  { section: "juros", title: "Juros — Fed Funds vs. Treasury 10 anos", image: "charts/juros.png" },
+  // adicione um bloco assim para cada gráfico novo
+];
+```
+
+- `section` precisa bater com o `id` de um item em `SECTIONS` (ou crie um
+  tema novo ali).
+- `image` é o caminho do arquivo PNG dentro de `charts/`.
+- Um gráfico listado aqui sem o arquivo correspondente aparece no site como
+  um aviso "Imagem não encontrada" — nunca quebra a página.
 
 ## Testar localmente
-
-Como o navegador bloqueia `fetch` em arquivos abertos direto com `file://`,
-rode um servidor simples na pasta do projeto:
 
 ```
 cd norte-chartbook
 python3 -m http.server 8000
 ```
 
-E abra `http://localhost:8000` no navegador.
+Abra `http://localhost:8000`.
 
-## Publicar o site (GitHub Pages, grátis)
+## Publicar
 
 ```
 cd norte-chartbook
-git init
 git add .
-git commit -m "Primeira versão do chart book"
-
-gh auth login              # se ainda não tiver feito login no GitHub
-gh repo create norte-chartbook --public --source=. --push
-
-gh api -X PUT repos/:owner/norte-chartbook/pages \
-  -f "source[branch]=main" -f "source[path]=/"
+git commit -m "Atualiza gráficos"
+git push
 ```
 
-Depois de alguns minutos, o site fica no ar em
-`https://SEU_USUARIO.github.io/norte-chartbook/`.
+O GitHub Pages já está configurado neste repositório — o site atualiza
+sozinho alguns minutos depois do push. Sem terminal? Dá pra arrastar os
+PNGs novos direto pela interface do GitHub (`Add file → Upload files` na
+pasta `charts/`) e o Pages também rebuilda sozinho.
 
-Alternativa igualmente simples: importar o repositório no
-[vercel.com](https://vercel.com) ou [netlify.com](https://netlify.com) (ambos
-têm plano grátis e detectam automaticamente que é um site estático — nenhuma
-configuração de build é necessária).
+## A tira de estatísticas no topo
 
-## Atualizando os dados
-
-Edite a planilha normalmente no Google Sheets — o site busca o CSV publicado
-a cada visita, então a mudança aparece em minutos, sem precisar reeditar ou
-republicar o código. Só é preciso repetir o passo de deploy (novo `git push`)
-quando você alterar `index.html`, `styles.css`, `app.js` ou `config.js`.
-
-> **Compartilhamento:** a aba publicada como CSV é acessível por qualquer
-> pessoa com o link, sem exigir login — é assim que o site consegue buscá-la.
-> Não publique dados sensíveis nessa aba específica.
+Os 4 números no topo (Fed Funds, Treasury 10 anos, Desemprego, CPI) não são
+gráfico — continuam vindo ao vivo da planilha do Google Sheets configurada
+em `DATA_SOURCE_URL`, do jeito que já estava. Se preferir tirar essa parte,
+é só apagar o bloco `<div class="stat-strip">...</div>` em `index.html`.
