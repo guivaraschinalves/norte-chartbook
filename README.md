@@ -42,11 +42,15 @@ README.md     → este arquivo
 
 ## Como exportar os gráficos do PowerPoint
 
+Exporte do jeito que for mais fácil — **o nome do arquivo exportado não
+importa mais**, só o nome da pasta-slot onde ele entra (veja abaixo).
+
 **Se o slide tem só o gráfico** (a maioria dos casos):
 `Arquivo → Exportar → Alterar Tipo de Arquivo → PNG` (ou `Salvar Como` →
-formato PNG) → escolha **"Todos os Slides"**. O PowerPoint salva cada slide
-como um PNG separado numa pasta — renomeie cada um para o padrão
-`"NN - Título - Subtítulo.png"` (veja `charts/README.md`) antes de subir.
+formato PNG) → escolha **"Todos os Slides"**. O PowerPoint salva cada
+slide como um PNG separado numa pasta, com nomes genéricos
+(`Slide1.PNG`, `Slide2.PNG`...) — pode subir exatamente assim, sem
+renomear.
 
 **Se o slide tem outros elementos junto** (título solto, nota de rodapé
 fora do gráfico): clique direito em cima do gráfico → **Salvar como
@@ -54,36 +58,42 @@ Imagem** — exporta só o gráfico, recortado, sem o resto do slide.
 
 ## Gerenciando os gráficos pelo GitHub (sem terminal)
 
-Tudo dentro de `charts/`, sem tocar em código — veja `charts/README.md`
-para o formato de nomes de pasta e arquivo (inclui como agrupar vários
-temas sob um assunto maior, ex: todos os temas do Balanço de Pagamentos
-sob uma pasta "Balanço de Pagamentos - Brasil"). Resumo do dia a dia:
+Cada gráfico é uma **pasta-slot** (`charts/<tema>/<Título - Subtítulo>/`)
+com uma imagem dentro — o nome da pasta é a identidade do gráfico; o nome
+do arquivo de imagem lá dentro não importa. Veja `charts/README.md` para
+o formato completo (inclui como agrupar vários temas sob um assunto
+maior). Resumo do dia a dia:
 
 **Atualizar um gráfico existente** (a tarefa mais comum):
-1. No repositório, entre em `charts/` → pasta do tema (e do assunto, se
-   houver) → você vai ver o arquivo atual.
+1. No repositório, entre em `charts/` → pasta do tema → pasta do gráfico
+   (o slot) → você vai ver a imagem atual.
 2. Clique em **"Add file" → "Upload files"** (canto superior direito da
    lista de arquivos).
-3. Arraste o PNG novo **com exatamente o mesmo nome** do arquivo antigo.
-   O GitHub substitui o conteúdo, mantendo o nome (então título/ordem no
-   site não mudam — só a imagem).
+3. Arraste a imagem nova. Se você sempre usar o mesmo nome de arquivo
+   (sugestão: `grafico.png`, sempre), o GitHub substitui o conteúdo num
+   commit só. Se usar um nome diferente, os dois ficam na pasta e o site
+   mostra um aviso no card — aí é só apagar o antigo depois.
 4. Role até o fim, clique **"Commit changes"**. Em ~1 minuto o GitHub
    Pages já republicou. Se abrir o site e a imagem parecer a mesma de
    antes, é cache do navegador — dá um `Ctrl+Shift+R` (ou `Cmd+Shift+R`
    no Mac) pra forçar recarregar.
 
-**Gráfico novo**: mesma tela de upload, mas com um nome novo no padrão
-`"NN - Título - Subtítulo.png"`, na pasta do tema certo.
+**Gráfico novo**: em "Add file → Upload files", digite no campo de nome o
+caminho completo incluindo a pasta-slot nova, ex:
+`02 Conta corrente/03 - Novo Gráfico - Detalhe/grafico.png` — o GitHub
+cria as pastas que faltarem ao subir o primeiro arquivo nelas.
 
-**Tema novo**: clique em "Add file → Upload files", e no campo de nome do
-arquivo digite o caminho completo incluindo uma pasta nova, ex:
-`06 Nome do Tema/01 - Primeiro Gráfico.png` — o GitHub cria a pasta
-sozinho ao subir o primeiro arquivo dentro dela.
+**Tema novo**: mesma ideia, um nível acima:
+`06 Nome do Tema/01 - Primeiro Gráfico/grafico.png`.
 
-**Reordenar**: abra o arquivo (ou pasta) no GitHub, clique no ícone de
-lápis (editar), mude só o número no começo do nome, confirme o commit.
+**Reordenar ou renomear um slot**: o GitHub não tem botão de "renomear
+pasta". Abra o arquivo de dentro do slot, clique no lápis (editar), e
+mude o **caminho completo** no campo de nome no topo (não só o nome do
+arquivo) — isso move o arquivo pra uma pasta com nome novo. Ou, mais
+simples: apague a pasta-slot inteira e suba de novo com o nome certo.
 
-**Remover**: abra o arquivo, clique na lixeira, confirme o commit.
+**Remover**: apague o arquivo de dentro do slot — a pasta some sozinha
+(o git não guarda pasta vazia).
 
 ## Testar localmente
 

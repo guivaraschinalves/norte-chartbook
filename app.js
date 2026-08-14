@@ -126,19 +126,27 @@
     return tree;
   }
 
-  // Walks the repo tree and turns charts/ into { sections, charts }. Two
-  // folder depths are both understood, and can be mixed freely:
-  //   charts/<Tema>/<NN - Título - Subtítulo>.png                (ungrouped)
-  //   charts/<Grupo>/<Tema>/<NN - Título - Subtítulo>.png        (agrupado)
-  // The leading "NN " on any folder orders it among its own siblings —
-  // groups and top-level (ungrouped) themes share that same ordering slot,
-  // since both are direct children of charts/.
+  // Walks the repo tree and turns charts/ into { sections, charts }. Every
+  // chart lives in its own "slot" folder — the slot folder's name (not the
+  // image file's name) is the chart's identity, parsed with the same
+  // "NN - Título - Subtítulo" convention filenames used before this change.
+  // The file inside the slot can be named anything; only its extension is
+  // checked. Two folder depths are understood, and can be mixed freely:
+  //   charts/<NN Tema>/<NN - Título - Subtítulo>/<qualquer-nome>.png              (ungrouped)
+  //   charts/<NN Assunto>/<NN Tema>/<NN - Título - Subtítulo>/<qualquer-nome>.png (agrupado)
+  // The leading "NN " on any folder orders it among its own siblings — groups
+  // and top-level (ungrouped) themes share that same ordering slot, since both
+  // are direct children of charts/. A slot with more than one image is a user
+  // error (forgot to delete the old file before uploading a differently-named
+  // replacement) — we deterministically show the alphabetically-first image
+  // and flag the rest via chart.extraImagesWarning instead of silently
+  // dropping the slot or silently picking one with no indication.
   function buildSectionsAndCharts(tree) {
     var rc = window.REPO_CONFIG || {};
     var prefix = (rc.chartsPath || "charts").replace(/\/$/, "") + "/";
     var groupsByName = {};
     var sectionsByKey = {};
-    var charts = [];
+    var slotsByKey = {};
 
     function ensureGroup(name) {
       if (!groupsByName[name]) {
@@ -158,26 +166,48 @@
     tree.forEach(function (entry) {
       if (entry.type !== "blob" || !entry.path.startsWith(prefix)) return;
       var segs = entry.path.slice(prefix.length).split("/");
-      var fileName, section;
-      if (segs.length === 2) {
-        fileName = segs[1];
-        section = ensureSection(segs[0], segs[0], null);
-      } else if (segs.length === 3) {
-        fileName = segs[2];
-        section = ensureSection(segs[0] + "/" + segs[1], segs[1], ensureGroup(segs[0]));
-      } else {
-        return; // unsupported depth — neither charts/<f> nor charts/<a>/<b>/<c>/<f>
-      }
+      var fileName = segs[segs.length - 1];
       if (!IMAGE_EXT.test(fileName)) return;
 
-      var parsed = parseOrderedName(fileName.replace(IMAGE_EXT, ""));
-      charts.push({
-        section: section.id,
+      var slotName, slotKey, section;
+      if (segs.length === 3) {
+        slotName = segs[1];
+        slotKey = segs[0] + "/" + segs[1];
+        section = ensureSection(segs[0], segs[0], null);
+      } else if (segs.length === 4) {
+        slotName = segs[2];
+        slotKey = segs[0] + "/" + segs[1] + "/" + segs[2];
+        section = ensureSection(segs[0] + "/" + segs[1], segs[1], ensureGroup(segs[0]));
+      } else {
+        return; // unsupported depth: legacy flat file directly in a theme folder, or nested too deep inside a slot
+      }
+
+      if (!slotsByKey[slotKey]) slotsByKey[slotKey] = { slotName: slotName, section: section, files: [] };
+      slotsByKey[slotKey].files.push({ name: fileName, path: entry.path });
+    });
+
+    var charts = Object.keys(slotsByKey).map(function (key) {
+      var slot = slotsByKey[key];
+      // Deterministic, not "most recent": plain alphabetical order of the
+      // filenames actually present. Only matters when a slot has 2+ images.
+      var files = slot.files.slice().sort(function (a, b) {
+        return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
+      });
+      var chosen = files[0];
+      var parsed = parseOrderedName(slot.slotName);
+      var chart = {
+        section: slot.section.id,
         order: parsed.order,
         title: parsed.title,
         subtitle: parsed.subtitle,
-        image: entry.path.split("/").map(encodeURIComponent).join("/")
-      });
+        image: chosen.path.split("/").map(encodeURIComponent).join("/")
+      };
+      if (files.length > 1) {
+        var extra = files.slice(1).map(function (f) { return f.name; });
+        chart.extraImagesWarning = "Mais de um arquivo encontrado nesta pasta — exibindo \"" + chosen.name +
+          "\". Remova o(s) arquivo(s) extra para não haver ambiguidade: " + extra.join(", ") + ".";
+      }
+      return chart;
     });
 
     var sections = Object.keys(sectionsByKey).map(function (k) { return sectionsByKey[k]; });
@@ -210,6 +240,12 @@
     head.appendChild(titleWrap);
     card.appendChild(head);
 
+    if (chart.extraImagesWarning) {
+      var warn = el("div", "chart-warning");
+      warn.textContent = chart.extraImagesWarning;
+      card.appendChild(warn);
+    }
+
     var imgWrap = el("div", "chart-image-wrap");
     var zoomBtn = el("button", "chart-image-btn");
     zoomBtn.type = "button";
@@ -228,7 +264,7 @@
       var code = document.createElement("code");
       code.textContent = chart.image;
       var hint = document.createElement("span");
-      hint.textContent = "Exporte o gráfico do PowerPoint com esse nome de arquivo (veja o README.md).";
+      hint.textContent = "Suba uma imagem dentro dessa pasta-slot (qualquer nome de arquivo serve — veja o README.md).";
       ph.appendChild(strong); ph.appendChild(code); ph.appendChild(hint);
       imgWrap.appendChild(ph);
     }, { once: true });
