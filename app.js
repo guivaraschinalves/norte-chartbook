@@ -279,6 +279,8 @@
   /* ============================== line chart renderer ============================== */
   function renderLineChart(container, cfg) {
     var dates = cfg.dates, series = cfg.series, fmt = cfg.fmt;
+    var backdrop = cfg.backdrop || [];
+    var backdropFmt = cfg.backdropFmt || fmt;
     var n = dates.length;
     var W = 640, H = 300;
     var margin = { top: 16, right: series.length > 1 ? 22 : 58, bottom: 32, left: 50 };
@@ -297,7 +299,37 @@
     function xAt(i) { return x0 + (x1 - x0) * (n === 1 ? 0 : i / (n - 1)); }
     function yAt(v) { return y1 - (y1 - y0) * ((v - scale.min) / (scale.max - scale.min)); }
 
+    // Backdrop (e.g. Fed balance-sheet holdings) is context, not the reading
+    // axis: it gets its own independent scale, capped below the plot's full
+    // height, and no tick labels — stacking a second numeric axis on the same
+    // plot as the % lines would imply an alignment between trillions and
+    // percent that doesn't exist. Layer order: bottom-most = first entry.
+    var bdLayers = [];
+    if (backdrop.length) {
+      var running = new Array(n).fill(0);
+      backdrop.forEach(function (b) {
+        var bottomArr = running.slice();
+        var topArr = b.data.map(function (v, i) { running[i] += v; return running[i]; });
+        bdLayers.push({ label: b.label, color: b.color, data: b.data, bottom: bottomArr, top: topArr });
+      });
+      var bdCeil = Math.max.apply(null, running) * 1.18 || 1;
+    }
+    function bdY(v) { return y1 - (y1 - y0) * 0.82 * (v / bdCeil); }
+
     var svg = el("svg", { viewBox: "0 0 " + W + " " + H, "class": "chart-svg", role: "img", "aria-label": series.map(function (s) { return s.label; }).join(" vs ") });
+
+    if (bdLayers.length) {
+      var bdG = el("g", {});
+      bdLayers.forEach(function (layer, li) {
+        var topPts = layer.top.map(function (v, i) { return [xAt(i), bdY(v)]; });
+        var botPts = layer.bottom.map(function (v, i) { return [xAt(i), bdY(v)]; });
+        var d = topPts.map(function (p, i) { return (i === 0 ? "M" : "L") + p[0].toFixed(2) + "," + p[1].toFixed(2); }).join(" ")
+          + " " + botPts.slice().reverse().map(function (p) { return "L" + p[0].toFixed(2) + "," + p[1].toFixed(2); }).join(" ")
+          + " Z";
+        bdG.appendChild(el("path", { d: d, fill: layer.color, opacity: li === 0 ? 0.16 : 0.11, stroke: "none" }));
+      });
+      svg.appendChild(bdG);
+    }
 
     var gGrid = el("g", {});
     scale.ticks.forEach(function (t) {
@@ -394,6 +426,29 @@
         row.appendChild(left); row.appendChild(val);
         tooltip.appendChild(row);
       });
+      if (bdLayers.length) {
+        var divider = document.createElement("div");
+        divider.className = "tooltip-divider";
+        tooltip.appendChild(divider);
+        bdLayers.forEach(function (layer) {
+          var row = document.createElement("div");
+          row.className = "tooltip-row";
+          var left = document.createElement("span");
+          left.className = "tooltip-name";
+          var key = document.createElement("span");
+          key.className = "tooltip-key area";
+          key.style.background = layer.color;
+          left.appendChild(key);
+          var nameSpan = document.createElement("span");
+          nameSpan.textContent = layer.label;
+          left.appendChild(nameSpan);
+          var val = document.createElement("span");
+          val.className = "tooltip-val";
+          val.textContent = backdropFmt(layer.data[i]) + " T";
+          row.appendChild(left); row.appendChild(val);
+          tooltip.appendChild(row);
+        });
+      }
       tooltip.classList.add("visible");
     }
     function hide() { crosshair.setAttribute("opacity", 0); dotsLayer.setAttribute("opacity", 0); tooltip.classList.remove("visible"); }
@@ -412,12 +467,12 @@
     var legendHost = container.parentElement.querySelector(".legend");
     if (legendHost) {
       legendHost.innerHTML = "";
-      if (series.length > 1) {
+      if (series.length > 1 || bdLayers.length) {
         series.forEach(function (s) {
           var item = document.createElement("span");
           item.className = "legend-item";
           var sw = document.createElement("span");
-          sw.className = "legend-swatch";
+          sw.className = "legend-swatch line";
           sw.style.background = s.color;
           item.appendChild(sw);
           var txt = document.createElement("span");
@@ -425,14 +480,34 @@
           item.appendChild(txt);
           legendHost.appendChild(item);
         });
+        bdLayers.forEach(function (layer) {
+          var item = document.createElement("span");
+          item.className = "legend-item";
+          var sw = document.createElement("span");
+          sw.className = "legend-swatch area";
+          sw.style.background = layer.color;
+          item.appendChild(sw);
+          var txt = document.createElement("span");
+          txt.textContent = layer.label;
+          item.appendChild(txt);
+          legendHost.appendChild(item);
+        });
+        if (bdLayers.length) {
+          var note = document.createElement("span");
+          note.className = "legend-note";
+          note.textContent = "Balanço do Fed em escala própria";
+          legendHost.appendChild(note);
+        }
       }
     }
 
     var tableHost = container.parentElement.querySelector(".data-table-wrap");
-    var headers = ["Período"].concat(series.map(function (s) { return s.label; }));
+    var headers = ["Período"].concat(series.map(function (s) { return s.label; })).concat(bdLayers.map(function (b) { return b.label; }));
     var rows = [];
     for (var i = n - 1; i >= 0; i--) {
-      rows.push([dates[i]].concat(series.map(function (s) { return fmt(s.data[i]); })));
+      rows.push([dates[i]]
+        .concat(series.map(function (s) { return fmt(s.data[i]); }))
+        .concat(bdLayers.map(function (b) { return backdropFmt(b.data[i]) + " T"; })));
     }
     buildTable(tableHost, headers, rows);
   }
@@ -443,6 +518,15 @@
 
   function sliceMonthly(arr) { return state.rangeYears === "max" ? arr : arr.slice(-state.rangeYears * 12); }
 
+  // Every chart shares the same backdrop (Fed's Treasury + MBS holdings) and
+  // the same Fed Funds reference line — only the highlighted series changes.
+  function fedBackdrop(values) {
+    return [
+      { label: "Títulos do Tesouro", color: "var(--ink-muted)", data: values.fedTreasuries },
+      { label: "MBS", color: "var(--ink-secondary)", data: values.fedMbs }
+    ];
+  }
+
   function renderTimeSeries() {
     var j = DATASETS.juros;
     renderLineChart(document.getElementById("chart-juros"), {
@@ -451,42 +535,42 @@
         { label: "Fed Funds", color: "var(--series-1)", data: sliceMonthly(j.values.fedFunds) },
         { label: "Treasury 10 anos", color: "var(--series-2)", data: sliceMonthly(j.values.treasury10y) }
       ],
-      fmt: fmtPct1
-    });
-
-    var c = DATASETS.cpi;
-    renderLineChart(document.getElementById("chart-cpi"), {
-      dates: sliceMonthly(c.dates),
-      series: [{ label: "CPI (a/a)", color: "var(--series-1)", data: sliceMonthly(c.values.cpi) }],
-      fmt: fmtPct1
+      backdrop: fedBackdrop({ fedTreasuries: sliceMonthly(j.values.fedTreasuries), fedMbs: sliceMonthly(j.values.fedMbs) }),
+      fmt: fmtPct1, backdropFmt: fmtTrillion
     });
 
     var p = DATASETS.pce;
     renderLineChart(document.getElementById("chart-pce"), {
       dates: sliceMonthly(p.dates),
       series: [
-        { label: "PCE", color: "var(--series-1)", data: sliceMonthly(p.values.pce) },
-        { label: "Core PCE", color: "var(--series-2)", data: sliceMonthly(p.values.corePce) },
-        { label: "Trimmed Mean", color: "var(--series-3)", data: sliceMonthly(p.values.trimmedMeanPce) }
+        { label: "Fed Funds", color: "var(--series-1)", data: sliceMonthly(p.values.fedFunds) },
+        { label: "PCE", color: "var(--series-2)", data: sliceMonthly(p.values.pce) },
+        { label: "Core PCE", color: "var(--series-3)", data: sliceMonthly(p.values.corePce) }
       ],
-      fmt: fmtPct1
+      backdrop: fedBackdrop({ fedTreasuries: sliceMonthly(p.values.fedTreasuries), fedMbs: sliceMonthly(p.values.fedMbs) }),
+      fmt: fmtPct1, backdropFmt: fmtTrillion
+    });
+
+    var c = DATASETS.cpi;
+    renderLineChart(document.getElementById("chart-cpi"), {
+      dates: sliceMonthly(c.dates),
+      series: [
+        { label: "Fed Funds", color: "var(--series-1)", data: sliceMonthly(c.values.fedFunds) },
+        { label: "CPI (a/a)", color: "var(--series-2)", data: sliceMonthly(c.values.cpi) }
+      ],
+      backdrop: fedBackdrop({ fedTreasuries: sliceMonthly(c.values.fedTreasuries), fedMbs: sliceMonthly(c.values.fedMbs) }),
+      fmt: fmtPct1, backdropFmt: fmtTrillion
     });
 
     var u = DATASETS.unemployment;
     renderLineChart(document.getElementById("chart-unemployment"), {
       dates: sliceMonthly(u.dates),
-      series: [{ label: "Desemprego", color: "var(--series-1)", data: sliceMonthly(u.values.unemployment) }],
-      fmt: fmtPct1
-    });
-
-    var b = DATASETS.fedBalance;
-    renderLineChart(document.getElementById("chart-fed-balance"), {
-      dates: sliceMonthly(b.dates),
       series: [
-        { label: "Títulos do Tesouro", color: "var(--series-1)", data: sliceMonthly(b.values.fedTreasuries) },
-        { label: "MBS", color: "var(--series-2)", data: sliceMonthly(b.values.fedMbs) }
+        { label: "Fed Funds", color: "var(--series-1)", data: sliceMonthly(u.values.fedFunds) },
+        { label: "Desemprego", color: "var(--series-2)", data: sliceMonthly(u.values.unemployment) }
       ],
-      fmt: fmtTrillion
+      backdrop: fedBackdrop({ fedTreasuries: sliceMonthly(u.values.fedTreasuries), fedMbs: sliceMonthly(u.values.fedMbs) }),
+      fmt: fmtPct1, backdropFmt: fmtTrillion
     });
   }
 
@@ -539,13 +623,13 @@
     var loaded = await loadTable();
     var rows = loaded.rows, demo = loaded.demo;
 
-    DATASETS.juros = alignSeries(rows, ["fedFunds", "treasury10y"]);
-    DATASETS.cpi = alignSeries(rows, ["cpi"]);
-    DATASETS.pce = alignSeries(rows, ["pce", "corePce", "trimmedMeanPce"]);
-    DATASETS.unemployment = alignSeries(rows, ["unemployment"]);
-    DATASETS.fedBalance = alignSeries(rows, ["fedTreasuries", "fedMbs"]);
+    var backdropCols = ["fedTreasuries", "fedMbs"];
+    DATASETS.juros = alignSeries(rows, ["fedFunds", "treasury10y"].concat(backdropCols));
+    DATASETS.cpi = alignSeries(rows, ["fedFunds", "cpi"].concat(backdropCols));
+    DATASETS.pce = alignSeries(rows, ["fedFunds", "pce", "corePce"].concat(backdropCols));
+    DATASETS.unemployment = alignSeries(rows, ["fedFunds", "unemployment"].concat(backdropCols));
 
-    ["juros", "cpi", "pce", "unemployment", "fedBalance"].forEach(function (key) { setDemoBadge(key, demo); });
+    ["juros", "cpi", "pce", "unemployment"].forEach(function (key) { setDemoBadge(key, demo); });
     var notice = document.getElementById("global-notice");
     if (notice) notice.classList.toggle("visible", demo);
 
