@@ -7,6 +7,81 @@
     return e;
   }
 
+  function slugify(s) {
+    return String(s)
+      .toLowerCase()
+      .normalize("NFD").replace(new RegExp("[\\u0300-\\u036f]", "g"), "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "") || "grafico";
+  }
+
+  function downloadName(chart) {
+    var label = chart.title + (chart.subtitle ? " " + chart.subtitle : "");
+    var ext = (chart.image.match(/\.[a-zA-Z0-9]+$/) || [".png"])[0].toLowerCase();
+    return slugify(label) + ext;
+  }
+
+  /* ============================== lightbox (zoom / fullscreen) ============================== */
+  var lightbox = null;
+  function buildLightbox() {
+    var box = el("div", "lightbox");
+    box.id = "lightbox";
+    box.setAttribute("role", "dialog");
+    box.setAttribute("aria-modal", "true");
+    box.setAttribute("aria-label", "Imagem em tela cheia");
+    box.hidden = true;
+
+    var closeBtn = el("button", "lightbox-close");
+    closeBtn.type = "button";
+    closeBtn.setAttribute("aria-label", "Fechar");
+    closeBtn.textContent = "✕";
+    closeBtn.addEventListener("click", closeLightbox);
+
+    var img = document.createElement("img");
+    img.className = "lightbox-img";
+    img.id = "lightbox-img";
+    img.alt = "";
+
+    var download = document.createElement("a");
+    download.className = "lightbox-download";
+    download.id = "lightbox-download";
+    download.textContent = "Baixar imagem";
+
+    box.appendChild(closeBtn);
+    box.appendChild(img);
+    box.appendChild(download);
+    box.addEventListener("click", function (evt) {
+      if (evt.target === box) closeLightbox();
+    });
+    document.body.appendChild(box);
+
+    document.addEventListener("keydown", function (evt) {
+      if (evt.key === "Escape" && !box.hidden) closeLightbox();
+    });
+
+    lightbox = { box: box, img: img, download: download, trigger: null };
+  }
+
+  function openLightbox(chart, triggerEl) {
+    if (!lightbox) return;
+    lightbox.img.src = chart.image;
+    lightbox.img.alt = chart.title;
+    lightbox.download.href = chart.image;
+    lightbox.download.setAttribute("download", downloadName(chart));
+    lightbox.trigger = triggerEl || null;
+    lightbox.box.hidden = false;
+    document.body.classList.add("lightbox-open");
+    lightbox.box.querySelector(".lightbox-close").focus();
+  }
+
+  function closeLightbox() {
+    if (!lightbox || lightbox.box.hidden) return;
+    lightbox.box.hidden = true;
+    lightbox.img.src = "";
+    document.body.classList.remove("lightbox-open");
+    if (lightbox.trigger) lightbox.trigger.focus();
+  }
+
   /* ============================== gallery (image cards, from config.js) ============================== */
   function buildCard(chart) {
     var card = el("div", "chart-card");
@@ -25,11 +100,16 @@
     card.appendChild(head);
 
     var imgWrap = el("div", "chart-image-wrap");
+    var zoomBtn = el("button", "chart-image-btn");
+    zoomBtn.type = "button";
+    zoomBtn.setAttribute("aria-label", "Ver em tela cheia: " + chart.title);
     var img = document.createElement("img");
     img.src = chart.image;
     img.alt = chart.title;
     img.loading = "lazy";
+    var imageOk = true;
     img.addEventListener("error", function () {
+      imageOk = false;
       imgWrap.innerHTML = "";
       var ph = el("div", "chart-placeholder");
       var strong = document.createElement("strong");
@@ -41,8 +121,27 @@
       ph.appendChild(strong); ph.appendChild(code); ph.appendChild(hint);
       imgWrap.appendChild(ph);
     }, { once: true });
-    imgWrap.appendChild(img);
+    zoomBtn.appendChild(img);
+    zoomBtn.addEventListener("click", function () {
+      if (imageOk) openLightbox(chart, zoomBtn);
+    });
+    imgWrap.appendChild(zoomBtn);
     card.appendChild(imgWrap);
+
+    var actions = el("div", "chart-actions");
+    var zoomLink = el("button", "chart-action");
+    zoomLink.type = "button";
+    zoomLink.textContent = "Tela cheia";
+    zoomLink.addEventListener("click", function () {
+      if (imageOk) openLightbox(chart, zoomLink);
+    });
+    var downloadLink = el("a", "chart-action");
+    downloadLink.href = chart.image;
+    downloadLink.setAttribute("download", downloadName(chart));
+    downloadLink.textContent = "Baixar";
+    actions.appendChild(zoomLink);
+    actions.appendChild(downloadLink);
+    card.appendChild(actions);
 
     var footer = el("div", "chart-footer");
     var src = document.createElement("span");
@@ -122,6 +221,7 @@
   function init() {
     applyBranding();
     buildGallery();
+    buildLightbox();
   }
 
   document.addEventListener("DOMContentLoaded", init);
