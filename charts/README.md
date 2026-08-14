@@ -1,17 +1,61 @@
-# Pasta de imagens dos gráficos
+# Pasta de gráficos
 
-Os PNGs aqui dentro são os slides exportados do PowerPoint (`Slide1.PNG`
-até `Slide19.PNG`), referenciados em `config.js`. Não é preciso renomear
-nada: sempre que reexportar o mesmo baralho de slides na mesma ordem, os
-arquivos saem com esses mesmos nomes e sobrescrevem os antigos — o site
-atualiza sozinho.
+O site descobre os gráficos sozinho a partir da estrutura desta pasta —
+**não existe mais nenhum arquivo de configuração para manter atualizado.**
+Adicionar, remover, renomear ou reordenar um gráfico é só mexer nos
+arquivos aqui (direto pela interface do GitHub, sem precisar de terminal).
 
-Se a ordem/quantidade de slides mudar, ajuste o campo `image` do gráfico
-correspondente em `config.js` (ou o número do slide, se for só isso que
-mudou).
+## Estrutura esperada
 
-Um gráfico sem a imagem correspondente aparece no site como um aviso
-"Imagem não encontrada" com o nome do arquivo esperado — não quebra a
-página, só sinaliza o que falta.
+```
+charts/
+  01 Visão geral/
+    01 - Balanço de Pagamentos do Brasil - Acumulado em 12 meses.png
+    02 - Balanço de Pagamentos do Brasil - Acumulado em 3 meses.png
+    ...
+  02 Conta corrente/
+    01 - Conta Corrente do Brasil - Acumulado em 12 meses.png
+    ...
+```
 
-**Como exportar do PowerPoint:** veja o README.md na raiz do projeto.
+Duas regras:
+
+1. **Uma pasta por tema**, nomeada `"NN Nome do tema"` — o número controla a
+   ordem do tema no menu lateral e na página; o texto depois do número é o
+   nome exibido. Só um nível de pasta é lido (não crie subpastas dentro de
+   um tema).
+2. **Um arquivo por gráfico**, nomeado `"NN - Título - Subtítulo.png"` — o
+   número controla a ordem dentro do tema; título e subtítulo (opcional)
+   são exibidos no card. Se não tiver subtítulo, é só `"NN - Título.png"`.
+
+## O que isso resolve
+
+- **Novo tema que não é do Balanço de Pagamentos?** Crie uma pasta nova
+  (`06 Nome do tema`) e solte os PNGs dentro — o site já reconhece na
+  próxima visita, sem eu precisar editar nada.
+- **A ordem ou composição dos gráficos do PowerPoint mudou?** Não importa —
+  o número no nome do arquivo é escolhido por você, não pelo PowerPoint.
+  Renomeie o arquivo (ou troque o número) e a ordem no site muda junto.
+- **Vai ter mais de 100 gráficos?** Cada tema é uma pasta separada — dá pra
+  navegar e substituir arquivos pelo GitHub sem precisar rolar uma lista
+  gigante de nomes genéricos.
+
+## Cuidados ao nomear
+
+- Evite `%` no nome do arquivo (some sistemas tratam como código de
+  escape) — troque por "pct" ou reescreva.
+- `/` não pode aparecer no nome (viraria uma subpasta).
+- Acentos e espaços funcionam normalmente.
+- Extensões aceitas: `.png`, `.jpg`, `.jpeg`, `.webp`, `.gif`.
+
+## Um gráfico não aparece / aparece com nome estranho
+
+- Confira se o arquivo está dentro de uma pasta de tema (não solto direto
+  em `charts/`) e se a extensão é uma das aceitas.
+- Sem o número inicial (`NN - `), o gráfico ainda aparece, só entra por
+  último e usa o nome do arquivo inteiro como título — funciona como
+  fallback, mas o ideal é sempre nomear com o padrão acima.
+
+## Como exportar do PowerPoint
+
+Veja o README.md na raiz do projeto.

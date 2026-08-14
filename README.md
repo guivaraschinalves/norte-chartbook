@@ -7,59 +7,63 @@ interativos reconstruídos em código.
 
 ## Por que imagem, e não gráfico interativo
 
-A primeira versão deste projeto redesenhava cada gráfico em código
+Uma versão anterior deste projeto redesenhava cada gráfico em código
 (SVG/JS), tentando reproduzir o visual do Excel/PowerPoint — o que só
 funciona bem se você reconstrói cada gráfico à mão, o que não escala.
 Sites como o do Yardeni fazem o oposto: o gráfico é desenhado **uma vez**,
 na ferramenta que já se conhece (aqui, PowerPoint), e o site só exibe a
 imagem exportada. Atualizar = reexportar e trocar o arquivo.
 
+## Por que pastas, e não um arquivo de configuração
+
+Uma versão anterior listava cada gráfico manualmente em `config.js`. Isso
+quebrava assim que o projeto precisasse de mais de um assunto (não só
+Balanço de Pagamentos), a ordem dos slides no PowerPoint mudasse, ou o
+número de gráficos passasse de umas dezenas — qualquer uma dessas coisas
+exigia editar código.
+
+Agora **o site lê a estrutura de pastas do próprio repositório** (via API
+do GitHub) e monta a galeria sozinho: uma pasta por tema, um arquivo por
+gráfico, o nome de cada um já diz onde ele entra. Adicionar, remover,
+renomear ou reordenar um gráfico é só mexer em arquivos — direto pela
+interface do GitHub, sem editar nenhum código. Veja `charts/README.md`
+para o formato exato.
+
 ## Estrutura
 
 ```
-index.html    → casca da página (sidebar, cabeçalho)
+index.html    → casca da página (sidebar, cabeçalho) — não precisa editar
 styles.css    → visual (cores, tipografia, layout)
-app.js        → monta a galeria e o menu lateral a partir de config.js
-config.js     → ← É AQUI que você mexe: marca, temas e gráficos
-charts/       → ← as imagens PNG exportadas do PowerPoint entram aqui
+app.js        → descobre os gráficos (API do GitHub) e monta a galeria
+config.js     → ← É AQUI que você mexe: marca do site e qual repositório ler
+charts/       → ← os PNGs entram aqui, organizados por pasta (veja charts/README.md)
 README.md     → este arquivo
 ```
 
 ## Como exportar os gráficos do PowerPoint
 
-**Se o slide tem só o gráfico** (a maioria dos seus casos):
+**Se o slide tem só o gráfico** (a maioria dos casos):
 `Arquivo → Exportar → Alterar Tipo de Arquivo → PNG` (ou `Salvar Como` →
 formato PNG) → escolha **"Todos os Slides"**. O PowerPoint salva cada slide
-como `Slide1.PNG`, `Slide2.PNG`, etc. — os mesmos nomes já usados em
-`config.js`, então basta substituir os arquivos em `charts/` e publicar
-(veja "Publicar" abaixo). Nada mais precisa mudar, desde que a ordem e a
-quantidade de slides continuem as mesmas.
+como um PNG separado numa pasta — renomeie cada um para o padrão
+`"NN - Título - Subtítulo.png"` (veja `charts/README.md`) antes de subir.
 
-**Se o slide tem outros elementos junto** (proporção pequena): clique
-direito em cima do gráfico → **Salvar como Imagem** — exporta só o
-gráfico, recortado, sem o resto do slide. Dê o nome que preferir e ajuste o
-campo `image` daquele gráfico em `config.js`.
+**Se o slide tem outros elementos junto** (título solto, nota de rodapé
+fora do gráfico): clique direito em cima do gráfico → **Salvar como
+Imagem** — exporta só o gráfico, recortado, sem o resto do slide.
 
-## Adicionando ou trocando um gráfico
+## Adicionando, removendo ou reordenando um gráfico
 
-Tudo em `config.js`, sem tocar em mais nada:
+Tudo dentro de `charts/`, sem tocar em código — veja `charts/README.md`
+para o formato de nomes de pasta e arquivo. Resumo:
 
-```js
-var CHARTS = [
-  { section: "conta-corrente", title: "Conta Corrente do Brasil", subtitle: "US$ bilhões, acumulado em 12 meses", image: "charts/Slide7.PNG" },
-  // adicione um bloco assim para cada gráfico novo
-];
-```
-
-- `section` precisa bater com o `id` de um item em `SECTIONS` (ou crie um
-  tema novo ali).
-- `image` é o caminho do arquivo PNG dentro de `charts/`.
-- Se a ordem dos slides no PowerPoint mudar, o número de cada `SlideN.PNG`
-  muda junto — reabra o deck exportado e confira qual slide é qual antes de
-  atualizar `config.js` (ou fixe a ordem dos slides no PowerPoint para não
-  precisar checar toda vez).
-- Um gráfico listado aqui sem o arquivo correspondente aparece no site como
-  um aviso "Imagem não encontrada" — nunca quebra a página.
+- **Gráfico novo**: solte o PNG na pasta do tema certo, com o nome no
+  padrão `"NN - Título - Subtítulo.png"`.
+- **Tema novo** (algo que não é Balanço de Pagamentos): crie uma pasta
+  `"NN Nome do tema"` dentro de `charts/`.
+- **Reordenar**: troque o número no início do nome do arquivo (ou da
+  pasta, para reordenar temas).
+- **Remover**: apague o arquivo.
 
 ## Testar localmente
 
@@ -68,7 +72,9 @@ cd norte-chartbook
 python3 -m http.server 8000
 ```
 
-Abra `http://localhost:8000`.
+Abra `http://localhost:8000`. Como a lista de gráficos vem da API pública
+do GitHub, o teste local já reflete o que está publicado no repositório
+(não o que está só no seu disco, se ainda não deu `git push`).
 
 ## Publicar
 
@@ -80,6 +86,17 @@ git push
 ```
 
 O GitHub Pages já está configurado neste repositório — o site atualiza
-sozinho alguns minutos depois do push. Sem terminal? Dá pra arrastar os
-PNGs novos direto pela interface do GitHub (`Add file → Upload files` na
-pasta `charts/`) e o Pages também rebuilda sozinho.
+sozinho alguns minutos depois do push. Sem terminal? Dá pra fazer tudo
+(criar pasta, subir arquivo, renomear, apagar) direto pela interface do
+GitHub, sem nunca abrir um terminal.
+
+## Limite da API do GitHub
+
+O site busca a lista de gráficos na API pública do GitHub, que permite 60
+requisições por hora por IP sem login. Cada visita consome 1 requisição
+(o resultado fica em cache no navegador por 5 minutos, então recarregar a
+mesma aba não conta de novo). Para o uso atual isso é folgado; se um dia o
+site tiver tráfego alto o bastante para esbarrar nesse limite, a solução é
+gerar um `manifest.json` automaticamente a cada `git push` (via GitHub
+Actions) e o site passar a ler esse arquivo em vez de chamar a API
+diretamente — aviso quando/se isso virar necessário.

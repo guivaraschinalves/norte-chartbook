@@ -82,7 +82,85 @@
     if (lightbox.trigger) lightbox.trigger.focus();
   }
 
-  /* ============================== gallery (image cards, from config.js) ============================== */
+  /* ============================== repo discovery (GitHub file tree -> sections/charts) ============================== */
+  var IMAGE_EXT = /\.(png|jpe?g|webp|gif)$/i;
+
+  // "01 - Título - Subtítulo" -> {order, title, subtitle}. Missing leading
+  // number, or missing subtitle, degrade gracefully instead of failing.
+  function parseOrderedName(raw) {
+    var parts = raw.split(" - ").map(function (p) { return p.trim(); }).filter(Boolean);
+    var order = 999;
+    if (parts.length && /^\d+$/.test(parts[0])) {
+      order = parseInt(parts[0], 10);
+      parts.shift();
+    }
+    var title = parts.shift() || raw;
+    var subtitle = parts.length ? parts.join(" - ") : "";
+    return { order: order, title: title, subtitle: subtitle };
+  }
+
+  // "02 Conta corrente" -> {order: 2, label: "Conta corrente"}
+  function parseSectionFolder(name) {
+    var m = name.match(/^(\d+)\s+(.+)$/);
+    if (m) return { order: parseInt(m[1], 10), label: m[2].trim() };
+    return { order: 999, label: name };
+  }
+
+  async function fetchRepoTree() {
+    var rc = window.REPO_CONFIG || {};
+    var cacheKey = "chartbook-tree:" + rc.owner + "/" + rc.repo + "/" + rc.branch;
+    try {
+      var cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        var parsed = JSON.parse(cached);
+        if (Date.now() - parsed.t < 5 * 60 * 1000) return parsed.tree;
+      }
+    } catch (e) { /* sessionStorage unavailable (private mode etc.) — just skip the cache */ }
+
+    var url = "https://api.github.com/repos/" + rc.owner + "/" + rc.repo + "/git/trees/" + rc.branch + "?recursive=1";
+    var res = await fetch(url, { headers: { Accept: "application/vnd.github+json" } });
+    if (!res.ok) throw new Error("API do GitHub respondeu " + res.status + (res.status === 403 ? " (provavelmente limite de requisições — tente de novo em alguns minutos)" : ""));
+    var data = await res.json();
+    var tree = data.tree || [];
+    try { sessionStorage.setItem(cacheKey, JSON.stringify({ t: Date.now(), tree: tree })); } catch (e) {}
+    return tree;
+  }
+
+  // Walks the repo tree and turns charts/<Seção>/<NN - Título - Subtítulo>.png
+  // into { sections, charts } — no manifest file to keep in sync by hand.
+  function buildSectionsAndCharts(tree) {
+    var rc = window.REPO_CONFIG || {};
+    var prefix = (rc.chartsPath || "charts").replace(/\/$/, "") + "/";
+    var folders = {};
+    var charts = [];
+
+    tree.forEach(function (entry) {
+      if (entry.type !== "blob" || !entry.path.startsWith(prefix)) return;
+      var segs = entry.path.slice(prefix.length).split("/");
+      if (segs.length !== 2 || !IMAGE_EXT.test(segs[1])) return; // one folder level deep, images only
+
+      var folderName = segs[0], fileName = segs[1];
+      if (!folders[folderName]) {
+        var sec = parseSectionFolder(folderName);
+        folders[folderName] = { id: slugify(folderName), order: sec.order, label: sec.label };
+      }
+      var parsed = parseOrderedName(fileName.replace(IMAGE_EXT, ""));
+      charts.push({
+        section: folders[folderName].id,
+        order: parsed.order,
+        title: parsed.title,
+        subtitle: parsed.subtitle,
+        image: entry.path.split("/").map(encodeURIComponent).join("/")
+      });
+    });
+
+    var sections = Object.keys(folders).map(function (k) { return folders[k]; });
+    sections.sort(function (a, b) { return a.order - b.order || a.label.localeCompare(b.label, "pt-BR"); });
+    charts.sort(function (a, b) { return a.order - b.order || a.title.localeCompare(b.title, "pt-BR"); });
+    return { sections: sections, charts: charts };
+  }
+
+  /* ============================== gallery (image cards) ============================== */
   function buildCard(chart) {
     var card = el("div", "chart-card");
 
@@ -154,9 +232,7 @@
     return card;
   }
 
-  function buildGallery() {
-    var SECTIONS = window.SECTIONS || [];
-    var CHARTS = window.CHARTS || [];
+  function buildGallery(SECTIONS, CHARTS) {
     var host = document.getElementById("chart-sections");
     var nav = document.getElementById("nav-sections");
     if (!host) return;
@@ -218,10 +294,38 @@
     updatedNodes.forEach(function (n) { n.textContent = "Atualizado " + todayStr; });
   }
 
-  function init() {
+  async function init() {
     applyBranding();
-    buildGallery();
     buildLightbox();
+
+    var host = document.getElementById("chart-sections");
+    if (host) {
+      host.innerHTML = "";
+      host.appendChild(el("p", "state-message"));
+      host.firstChild.textContent = "Carregando gráficos…";
+    }
+
+    try {
+      var tree = await fetchRepoTree();
+      var built = buildSectionsAndCharts(tree);
+      if (!built.charts.length) {
+        if (host) host.innerHTML = '<p class="state-message">Nenhum gráfico encontrado em <code>charts/</code> ainda. Veja o README.md para o formato esperado de pastas e nomes de arquivo.</p>';
+        return;
+      }
+      buildGallery(built.sections, built.charts);
+    } catch (e) {
+      console.error("Falha ao listar os gráficos:", e);
+      if (host) {
+        host.innerHTML = "";
+        var box = el("div", "state-message error");
+        var strong = document.createElement("strong");
+        strong.textContent = "Não foi possível carregar a lista de gráficos.";
+        var msg = document.createElement("p");
+        msg.textContent = e.message + " — recarregue a página em alguns minutos.";
+        box.appendChild(strong); box.appendChild(msg);
+        host.appendChild(box);
+      }
+    }
   }
 
   document.addEventListener("DOMContentLoaded", init);
