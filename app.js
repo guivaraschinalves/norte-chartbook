@@ -126,27 +126,53 @@
     return tree;
   }
 
-  // Walks the repo tree and turns charts/<Seção>/<NN - Título - Subtítulo>.png
-  // into { sections, charts } — no manifest file to keep in sync by hand.
+  // Walks the repo tree and turns charts/ into { sections, charts }. Two
+  // folder depths are both understood, and can be mixed freely:
+  //   charts/<Tema>/<NN - Título - Subtítulo>.png                (ungrouped)
+  //   charts/<Grupo>/<Tema>/<NN - Título - Subtítulo>.png        (agrupado)
+  // The leading "NN " on any folder orders it among its own siblings —
+  // groups and top-level (ungrouped) themes share that same ordering slot,
+  // since both are direct children of charts/.
   function buildSectionsAndCharts(tree) {
     var rc = window.REPO_CONFIG || {};
     var prefix = (rc.chartsPath || "charts").replace(/\/$/, "") + "/";
-    var folders = {};
+    var groupsByName = {};
+    var sectionsByKey = {};
     var charts = [];
+
+    function ensureGroup(name) {
+      if (!groupsByName[name]) {
+        var g = parseSectionFolder(name);
+        groupsByName[name] = { id: slugify(name), order: g.order, label: g.label };
+      }
+      return groupsByName[name];
+    }
+    function ensureSection(key, name, group) {
+      if (!sectionsByKey[key]) {
+        var s = parseSectionFolder(name);
+        sectionsByKey[key] = { id: slugify(key), order: s.order, label: s.label, group: group };
+      }
+      return sectionsByKey[key];
+    }
 
     tree.forEach(function (entry) {
       if (entry.type !== "blob" || !entry.path.startsWith(prefix)) return;
       var segs = entry.path.slice(prefix.length).split("/");
-      if (segs.length !== 2 || !IMAGE_EXT.test(segs[1])) return; // one folder level deep, images only
-
-      var folderName = segs[0], fileName = segs[1];
-      if (!folders[folderName]) {
-        var sec = parseSectionFolder(folderName);
-        folders[folderName] = { id: slugify(folderName), order: sec.order, label: sec.label };
+      var fileName, section;
+      if (segs.length === 2) {
+        fileName = segs[1];
+        section = ensureSection(segs[0], segs[0], null);
+      } else if (segs.length === 3) {
+        fileName = segs[2];
+        section = ensureSection(segs[0] + "/" + segs[1], segs[1], ensureGroup(segs[0]));
+      } else {
+        return; // unsupported depth — neither charts/<f> nor charts/<a>/<b>/<c>/<f>
       }
+      if (!IMAGE_EXT.test(fileName)) return;
+
       var parsed = parseOrderedName(fileName.replace(IMAGE_EXT, ""));
       charts.push({
-        section: folders[folderName].id,
+        section: section.id,
         order: parsed.order,
         title: parsed.title,
         subtitle: parsed.subtitle,
@@ -154,8 +180,15 @@
       });
     });
 
-    var sections = Object.keys(folders).map(function (k) { return folders[k]; });
-    sections.sort(function (a, b) { return a.order - b.order || a.label.localeCompare(b.label, "pt-BR"); });
+    var sections = Object.keys(sectionsByKey).map(function (k) { return sectionsByKey[k]; });
+    function topOrder(s) { return s.group ? s.group.order : s.order; }
+    function withinOrder(s) { return s.group ? s.order : 0; }
+    sections.sort(function (a, b) {
+      return topOrder(a) - topOrder(b)
+        || (a.group && b.group ? a.group.label.localeCompare(b.group.label, "pt-BR") : 0)
+        || withinOrder(a) - withinOrder(b)
+        || a.label.localeCompare(b.label, "pt-BR");
+    });
     charts.sort(function (a, b) { return a.order - b.order || a.title.localeCompare(b.title, "pt-BR"); });
     return { sections: sections, charts: charts };
   }
@@ -239,9 +272,39 @@
     host.innerHTML = "";
     if (nav) nav.innerHTML = "";
 
+    var currentGroupId = undefined; // undefined ≠ null: forces the first iteration to (re)start a group
+    var groupHost = host, navGroupHost = nav;
+
     SECTIONS.forEach(function (sec, si) {
       var chartsInSection = CHARTS.filter(function (c) { return c.section === sec.id; });
       if (!chartsInSection.length) return;
+
+      var groupId = sec.group ? sec.group.id : null;
+      if (groupId !== currentGroupId) {
+        currentGroupId = groupId;
+        if (sec.group) {
+          var groupWrap = el("div", "chart-group");
+          var groupHeading = el("div", "group-heading");
+          var gh1 = document.createElement("h2");
+          gh1.textContent = sec.group.label;
+          groupHeading.appendChild(gh1);
+          groupWrap.appendChild(groupHeading);
+          host.appendChild(groupWrap);
+          groupHost = groupWrap;
+
+          if (nav) {
+            var navGroupWrap = el("div", "nav-supergroup");
+            var navGroupLabel = el("div", "nav-supergroup-label");
+            navGroupLabel.textContent = sec.group.label;
+            navGroupWrap.appendChild(navGroupLabel);
+            nav.appendChild(navGroupWrap);
+            navGroupHost = navGroupWrap;
+          }
+        } else {
+          groupHost = host;
+          navGroupHost = nav;
+        }
+      }
 
       var section = el("section", "theme-section");
       section.id = sec.id;
@@ -256,10 +319,10 @@
       var grid = el("div", "chart-grid");
       chartsInSection.forEach(function (chart) { grid.appendChild(buildCard(chart)); });
       section.appendChild(grid);
-      host.appendChild(section);
+      groupHost.appendChild(section);
 
       if (nav) {
-        var group = el("div", "nav-group");
+        var navGroup = el("div", "nav-group");
         var label = el("div", "nav-label");
         label.textContent = sec.label;
         var link = document.createElement("a");
@@ -270,8 +333,8 @@
         var n = el("span", "n");
         n.textContent = String(chartsInSection.length).padStart(2, "0");
         link.appendChild(linkText); link.appendChild(n);
-        group.appendChild(label); group.appendChild(link);
-        nav.appendChild(group);
+        navGroup.appendChild(label); navGroup.appendChild(link);
+        navGroupHost.appendChild(navGroup);
       }
     });
   }

@@ -28,6 +28,37 @@ Duas regras:
    número controla a ordem dentro do tema; título e subtítulo (opcional)
    são exibidos no card. Se não tiver subtítulo, é só `"NN - Título.png"`.
 
+## Agrupando vários temas sob um assunto maior (opcional)
+
+Se um assunto (ex: Balanço de Pagamentos) tem vários temas e você quer que
+eles apareçam juntos, visualmente separados de outros assuntos, crie mais
+um nível de pasta:
+
+```
+charts/
+  01 Balanço de Pagamentos - Brasil/
+    01 Visão geral/
+      01 - Balanço de Pagamentos do Brasil - Acumulado em 12 meses.png
+      ...
+    02 Conta corrente/
+      ...
+    03 Conta financeira/
+    04 Conta capital/
+    05 Indicadores complementares/
+  02 Outro Assunto/
+    01 Algum tema/
+      01 - Gráfico.png
+```
+
+O número no início de `"01 Balanço de Pagamentos - Brasil"` ordena esse
+assunto entre os outros assuntos (e entre temas soltos, se você tiver
+algum) — mesma regra do número nos nomes de tema e de arquivo, um nível
+acima. Temas sem esse nível extra continuam funcionando normalmente (dá
+pra misturar temas soltos com assuntos agrupados).
+
+Só é lido um nível de agrupamento (assunto → tema → gráfico) — não crie
+pastas dentro de pastas de tema.
+
 ## O que isso resolve
 
 - **Novo tema que não é do Balanço de Pagamentos?** Crie uma pasta nova
