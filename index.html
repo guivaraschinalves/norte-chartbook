@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chart Book</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%AD%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <circle cx="12" cy="12" r="9"></circle>
+        <path d="M15.3 8.7 L11 11 L8.7 15.3 L13 13 Z" fill="currentColor" stroke="none"></path>
+      </svg>
+      <div>
+        <div class="brand-name" id="brand-name">Chart Book</div>
+        <div class="brand-tag" id="brand-tag"></div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-group">
+        <div class="nav-label">Mercados</div>
+        <a class="nav-link active" href="#mercados">Visão geral <span class="n">02</span></a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-label">Economia</div>
+        <a class="nav-link" href="#economia">PIB &amp; emprego <span class="n">02</span></a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-label">Juros &amp; inflação</div>
+        <a class="nav-link" href="#juros">Política monetária <span class="n">02</span></a>
+      </div>
+    </nav>
+
+    <div class="sync-status">
+      <div class="sync-row"><span class="dot" aria-hidden="true"></span> Dados atualizados manualmente</div>
+      <div class="sync-note">Fonte: Google Sheets<br>Ver README.md para configurar</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <p class="eyebrow">Chart book</p>
+    <h1 id="page-title">Painel Macro &amp; Mercados</h1>
+    <p class="lede" id="page-lede">Gráficos atualizados a partir de uma planilha do Google Sheets.</p>
+    <div class="meta-row">
+      <span data-updated-label>Atualizado —</span>
+      <span data-source-label>Fonte: planilha</span>
+      <span>6 séries · 3 temas</span>
+    </div>
+
+    <div class="notice" id="global-notice"><strong>Alguns gráficos ainda mostram dados de exemplo.</strong> Publique as abas correspondentes como CSV e cole os links em <code>config.js</code> — veja o README.md.</div>
+
+    <div class="stat-strip">
+      <div class="stat-tile">
+        <div class="stat-label">S&amp;P 500</div>
+        <div class="stat-value" id="stat-sp500-value">—</div>
+        <div class="stat-delta" id="stat-sp500-delta">—</div>
+      </div>
+      <div class="stat-tile">
+        <div class="stat-label">Treasury 10 anos</div>
+        <div class="stat-value" id="stat-t10y-value">—</div>
+        <div class="stat-delta" id="stat-t10y-delta">—</div>
+      </div>
+      <div class="stat-tile">
+        <div class="stat-label">Desemprego</div>
+        <div class="stat-value" id="stat-unemp-value">—</div>
+        <div class="stat-delta" id="stat-unemp-delta">—</div>
+      </div>
+      <div class="stat-tile">
+        <div class="stat-label">CPI (var. anual)</div>
+        <div class="stat-value" id="stat-cpi-value">—</div>
+        <div class="stat-delta" id="stat-cpi-delta">—</div>
+      </div>
+    </div>
+
+    <div class="range-row">
+      <span class="range-hint">Janela de tempo — aplica-se às séries temporais abaixo</span>
+      <div class="segmented" role="group" aria-label="Selecionar janela de tempo">
+        <button type="button" data-range="1" aria-pressed="false">1A</button>
+        <button type="button" data-range="3" aria-pressed="false">3A</button>
+        <button type="button" data-range="5" aria-pressed="true">5A</button>
+        <button type="button" data-range="max" aria-pressed="false">Máx</button>
+      </div>
+    </div>
+
+    <section class="theme-section" id="mercados">
+      <div class="section-heading"><h2>Mercados</h2><span class="count">2 gráficos</span></div>
+      <div class="chart-grid">
+
+        <div class="chart-card">
+          <div class="chart-card-head">
+            <div>
+              <h3 class="chart-title">S&amp;P 500</h3>
+              <div class="chart-subtitle-row">
+                <span class="chart-subtitle">Índice, fechamento mensal</span>
+                <span class="demo-badge" data-badge="sp500">dados de exemplo</span>
+              </div>
+            </div>
+            <button type="button" class="table-toggle" aria-expanded="false">Ver dados</button>
+          </div>
+          <div class="legend"></div>
+          <div id="chart-sp500"><div class="chart-loading">Carregando…</div></div>
+          <div class="data-table-wrap"></div>
+          <div class="chart-footer"><span data-source-label>Fonte: planilha</span><span data-updated-label>Atualizado —</span></div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-card-head">
+            <div>
+              <h3 class="chart-title">Retorno por setor</h3>
+              <div class="chart-subtitle-row">
+                <span class="chart-subtitle">Acumulado no ano (YTD), %</span>
+                <span class="demo-badge" data-badge="sectors">dados de exemplo</span>
+              </div>
+            </div>
+            <button type="button" class="table-toggle" aria-expanded="false">Ver dados</button>
+          </div>
+          <div class="legend"></div>
+          <div id="chart-sectors"><div class="chart-loading">Carregando…</div></div>
+          <div class="data-table-wrap"></div>
+          <div class="chart-footer"><span data-source-label>Fonte: planilha</span><span data-updated-label>Atualizado —</span></div>
+        </div>
+
+      </div>
+    </section>
+
+    <section class="theme-section" id="economia">
+      <div class="section-heading"><h2>Economia</h2><span class="count">2 gráficos</span></div>
+      <div class="chart-grid">
+
+        <div class="chart-card">
+          <div class="chart-card-head">
+            <div>
+              <h3 class="chart-title">PIB dos EUA</h3>
+              <div class="chart-subtitle-row">
+                <span class="chart-subtitle">Variação trimestral anualizada, %</span>
+                <span class="demo-badge" data-badge="gdp">dados de exemplo</span>
+              </div>
+            </div>
+            <button type="button" class="table-toggle" aria-expanded="false">Ver dados</button>
+          </div>
+          <div class="legend"></div>
+          <div id="chart-gdp"><div class="chart-loading">Carregando…</div></div>
+          <div class="data-table-wrap"></div>
+          <div class="chart-footer"><span data-source-label>Fonte: planilha</span><span data-updated-label>Atualizado —</span></div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-card-head">
+            <div>
+              <h3 class="chart-title">Taxa de desemprego</h3>
+              <div class="chart-subtitle-row">
+                <span class="chart-subtitle">%, mensal</span>
+                <span class="demo-badge" data-badge="unemployment">dados de exemplo</span>
+              </div>
+            </div>
+            <button type="button" class="table-toggle" aria-expanded="false">Ver dados</button>
+          </div>
+          <div class="legend"></div>
+          <div id="chart-unemployment"><div class="chart-loading">Carregando…</div></div>
+          <div class="data-table-wrap"></div>
+          <div class="chart-footer"><span data-source-label>Fonte: planilha</span><span data-updated-label>Atualizado —</span></div>
+        </div>
+
+      </div>
+    </section>
+
+    <section class="theme-section" id="juros">
+      <div class="section-heading"><h2>Juros &amp; inflação</h2><span class="count">2 gráficos</span></div>
+      <div class="chart-grid">
+
+        <div class="chart-card">
+          <div class="chart-card-head">
+            <div>
+              <h3 class="chart-title">Juros — Fed Funds vs. Treasury 10A</h3>
+              <div class="chart-subtitle-row">
+                <span class="chart-subtitle">%, fim de mês</span>
+                <span class="demo-badge" data-badge="juros">dados de exemplo</span>
+              </div>
+            </div>
+            <button type="button" class="table-toggle" aria-expanded="false">Ver dados</button>
+          </div>
+          <div class="legend"></div>
+          <div id="chart-juros"><div class="chart-loading">Carregando…</div></div>
+          <div class="data-table-wrap"></div>
+          <div class="chart-footer"><span data-source-label>Fonte: planilha</span><span data-updated-label>Atualizado —</span></div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-card-head">
+            <div>
+              <h3 class="chart-title">Inflação (CPI)</h3>
+              <div class="chart-subtitle-row">
+                <span class="chart-subtitle">Variação anual, %</span>
+                <span class="demo-badge" data-badge="cpi">dados de exemplo</span>
+              </div>
+            </div>
+            <button type="button" class="table-toggle" aria-expanded="false">Ver dados</button>
+          </div>
+          <div class="legend"></div>
+          <div id="chart-cpi"><div class="chart-loading">Carregando…</div></div>
+          <div class="data-table-wrap"></div>
+          <div class="chart-footer"><span data-source-label>Fonte: planilha</span><span data-updated-label>Atualizado —</span></div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
