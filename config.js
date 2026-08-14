@@ -38,16 +38,3 @@ var CHARTS = [
   { section: "inflacao", title: "PCE — cheio vs. núcleo", image: "charts/pce.png" },
   { section: "emprego", title: "Taxa de desemprego", image: "charts/desemprego.png" },
 ];
-
-// ----------------------------------------------------------------------------
-// Tira de estatísticas no topo (os 4 números, não são gráficos) — continua
-// puxando ao vivo da planilha, como antes.
-// ----------------------------------------------------------------------------
-var DATA_SOURCE_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSFj27mZ1xjhO937jTx-4DHshrfnsbkynTOhYh9MS9Z0D9jroV2hu-0iUfrv3vh-9TKs9CWDnF--RMR/pub?gid=146353345&single=true&output=csv";
-var DATE_COLUMN = "Data";
-var SERIES_CONFIG = {
-  fedFunds:     { column: "Federal Funds Effective Rate" },
-  treasury10y:  { column: "Treasury de 10 anos" },
-  cpi:          { column: "CPI - Var. % Anual" },
-  unemployment: { column: "Taxa de Desemprego" },
-};

@@ -17,10 +17,10 @@ imagem exportada. Atualizar = reexportar e trocar o arquivo.
 ## Estrutura
 
 ```
-index.html    → casca da página (sidebar, cabeçalho, tira de estatísticas)
+index.html    → casca da página (sidebar, cabeçalho)
 styles.css    → visual (cores, tipografia, layout)
-app.js        → monta a galeria a partir de config.js + lê a planilha da tira de estatísticas
-config.js     → ← É AQUI que você mexe: marca, temas, gráficos e planilha
+app.js        → monta a galeria e o menu lateral a partir de config.js
+config.js     → ← É AQUI que você mexe: marca, temas e gráficos
 charts/       → ← as imagens PNG exportadas do PowerPoint entram aqui
 README.md     → este arquivo
 ```
@@ -78,10 +78,3 @@ O GitHub Pages já está configurado neste repositório — o site atualiza
 sozinho alguns minutos depois do push. Sem terminal? Dá pra arrastar os
 PNGs novos direto pela interface do GitHub (`Add file → Upload files` na
 pasta `charts/`) e o Pages também rebuilda sozinho.
-
-## A tira de estatísticas no topo
-
-Os 4 números no topo (Fed Funds, Treasury 10 anos, Desemprego, CPI) não são
-gráfico — continuam vindo ao vivo da planilha do Google Sheets configurada
-em `DATA_SOURCE_URL`, do jeito que já estava. Se preferir tirar essa parte,
-é só apagar o bloco `<div class="stat-strip">...</div>` em `index.html`.

@@ -7,142 +7,6 @@
     return e;
   }
 
-  /* ============================== CSV loading (stat strip only) ============================== */
-  function parseCSV(text) {
-    var rows = [], row = [], field = "", inQuotes = false;
-    for (var i = 0; i < text.length; i++) {
-      var c = text[i];
-      if (inQuotes) {
-        if (c === '"') {
-          if (text[i + 1] === '"') { field += '"'; i++; }
-          else inQuotes = false;
-        } else field += c;
-      } else {
-        if (c === '"') inQuotes = true;
-        else if (c === ',') { row.push(field); field = ""; }
-        else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ""; }
-        else if (c === '\r') { /* skip */ }
-        else field += c;
-      }
-    }
-    if (field.length || row.length) { row.push(field); rows.push(row); }
-    if (!rows.length) return [];
-    var headers = rows[0].map(function (h) { return h.trim(); });
-    return rows.slice(1)
-      .filter(function (r) { return r.some(function (c) { return c.trim() !== ""; }); })
-      .map(function (r) {
-        var obj = {};
-        headers.forEach(function (h, idx) { obj[h] = (r[idx] || "").trim(); });
-        return obj;
-      });
-  }
-
-  function parseNum(raw) {
-    if (raw === null || raw === undefined) return NaN;
-    var s = String(raw).trim();
-    if (s === "") return NaN;
-    var negative = /^\(.*\)$/.test(s);
-    s = s.replace(/[()]/g, "");
-    s = s.replace(/[^\d.,\-+]/g, "");
-    if (s === "") return NaN;
-    if (/,\d{1,3}$/.test(s) && s.indexOf(".") !== -1) s = s.replace(/\./g, "").replace(",", ".");
-    else if (/,\d{1,3}$/.test(s)) s = s.replace(",", ".");
-    else s = s.replace(/,/g, "");
-    var n = parseFloat(s);
-    return negative ? -Math.abs(n) : n;
-  }
-
-  async function fetchCsvRows(url) {
-    var res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    var text = await res.text();
-    var rows = parseCSV(text);
-    if (!rows.length) throw new Error("Planilha vazia");
-    return rows;
-  }
-
-  function alignSeries(rows, keys) {
-    var SC = window.SERIES_CONFIG || {};
-    var dateCol = window.DATE_COLUMN || "Data";
-    var cols = keys.map(function (k) { return SC[k]; });
-    var dates = [];
-    var values = {};
-    keys.forEach(function (k) { values[k] = []; });
-    rows.forEach(function (r) {
-      var parsed = cols.map(function (c) { return parseNum(r[c.column]); });
-      if (parsed.every(function (v) { return !isNaN(v); })) {
-        dates.push(r[dateCol]);
-        keys.forEach(function (k, i) { values[k].push(parsed[i]); });
-      }
-    });
-    return { dates: dates, values: values };
-  }
-
-  // Small offline fallback so the stat strip never shows a blank/broken row
-  // if the sheet can't be reached.
-  function mulberry32(a) {
-    return function () {
-      a |= 0; a = (a + 0x6D2B79F5) | 0;
-      var t = Math.imul(a ^ (a >>> 15), 1 | a);
-      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
-  }
-  function buildDemoTable() {
-    var SC = window.SERIES_CONFIG || {};
-    var dateCol = window.DATE_COLUMN || "Data";
-    var rnd = mulberry32(7);
-    var rows = [];
-    for (var i = 0; i < 6; i++) {
-      var row = {};
-      row[dateCol] = "exemplo " + (i + 1);
-      if (SC.fedFunds) row[SC.fedFunds.column] = (3.4 + rnd() * 0.2).toFixed(1);
-      if (SC.treasury10y) row[SC.treasury10y.column] = (4.0 + rnd() * 0.3).toFixed(2);
-      if (SC.cpi) row[SC.cpi.column] = (2.9 + rnd() * 0.4).toFixed(1);
-      if (SC.unemployment) row[SC.unemployment.column] = (4.1 + rnd() * 0.3).toFixed(1);
-      rows.push(row);
-    }
-    return rows;
-  }
-
-  async function loadTable() {
-    var url = window.DATA_SOURCE_URL || "";
-    if (url) {
-      try {
-        var rows = await fetchCsvRows(url);
-        return { rows: rows, demo: false };
-      } catch (e) { console.warn("Não foi possível carregar a planilha, usando números de exemplo:", e); }
-    }
-    return { rows: buildDemoTable(), demo: true };
-  }
-
-  function fmtPct1(v) { return v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%"; }
-
-  function statPair(arr) {
-    if (!arr || arr.length < 2) return null;
-    return { last: arr[arr.length - 1], prev: arr[arr.length - 2] };
-  }
-  function paintStat(valueId, deltaId, last, delta, unit) {
-    var vEl = document.getElementById(valueId);
-    if (vEl) vEl.textContent = fmtPct1(last);
-    var dEl = document.getElementById(deltaId);
-    if (!dEl) return;
-    var up = delta >= 0;
-    dEl.textContent = (up ? "▲ +" : "▼ ") + Math.abs(delta).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " " + unit + " (mês)";
-    dEl.className = "stat-delta " + (up ? "up" : "down");
-  }
-
-  function renderStatStrip(rows) {
-    var f = statPair(alignSeries(rows, ["fedFunds"]).values.fedFunds);
-    if (f) paintStat("stat-fedfunds-value", "stat-fedfunds-delta", f.last, Math.round((f.last - f.prev) * 100), "pb");
-    var t = statPair(alignSeries(rows, ["treasury10y"]).values.treasury10y);
-    if (t) paintStat("stat-t10y-value", "stat-t10y-delta", t.last, Math.round((t.last - t.prev) * 100), "pb");
-    var u = statPair(alignSeries(rows, ["unemployment"]).values.unemployment);
-    if (u) paintStat("stat-unemp-value", "stat-unemp-delta", u.last, Math.round((u.last - u.prev) * 10) / 10, "pp");
-    var c = statPair(alignSeries(rows, ["cpi"]).values.cpi);
-    if (c) paintStat("stat-cpi-value", "stat-cpi-delta", c.last, Math.round((c.last - c.prev) * 10) / 10, "pp");
-  }
-
   /* ============================== gallery (image cards, from config.js) ============================== */
   function buildCard(chart) {
     var card = el("div", "chart-card");
@@ -255,13 +119,9 @@
     updatedNodes.forEach(function (n) { n.textContent = "Atualizado " + todayStr; });
   }
 
-  async function init() {
+  function init() {
     applyBranding();
     buildGallery();
-    var loaded = await loadTable();
-    renderStatStrip(loaded.rows);
-    var notice = document.getElementById("global-notice");
-    if (notice) notice.classList.toggle("visible", loaded.demo);
   }
 
   document.addEventListener("DOMContentLoaded", init);
