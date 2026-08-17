@@ -8,8 +8,8 @@
 var SITE_CONFIG = {
   brandName: "Follow the Money",
   tagline: "Chart Book",
-  pageTitle: "Balanço de Pagamentos do Brasil",
-  lede: "Conta corrente, conta financeira, conta capital e indicadores complementares.",
+  pageTitle: "Gráficos Follow the Money / Fernando Ulrich",
+  lede: "Monitoramento de indicadores macroeconômicos e de mercados: balanço de pagamentos, inflação, política monetária, atividade econômica e dados globais.",
   sourceLabel: "FtM",
 };
 
