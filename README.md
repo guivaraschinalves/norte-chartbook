@@ -98,7 +98,7 @@ simples: apague a pasta-slot inteira e suba de novo com o nome certo.
 ## Testar localmente
 
 ```
-cd norte-chartbook
+cd ftm-chartbook
 python3 -m http.server 8000
 ```
 
@@ -109,7 +109,7 @@ do GitHub, o teste local já reflete o que está publicado no repositório
 ## Publicar
 
 ```
-cd norte-chartbook
+cd ftm-chartbook
 git add .
 git commit -m "Atualiza gráficos"
 git push

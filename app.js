@@ -131,6 +131,13 @@
 
     var url = "https://api.github.com/repos/" + rc.owner + "/" + rc.repo + "/git/trees/" + rc.branch + "?recursive=1";
     var res = await fetch(url, { headers: { Accept: "application/vnd.github+json" } });
+    if (!res.ok && res.status === 404 && rc.repo === "ftm-chartbook") {
+      var fallbackUrl = "https://api.github.com/repos/" + rc.owner + "/norte-chartbook/git/trees/" + rc.branch + "?recursive=1";
+      var fallbackRes = await fetch(fallbackUrl, { headers: { Accept: "application/vnd.github+json" } });
+      if (fallbackRes.ok) {
+        res = fallbackRes;
+      }
+    }
     if (!res.ok) throw new Error("API do GitHub respondeu " + res.status + (res.status === 403 ? " (provavelmente limite de requisições — tente de novo em alguns minutos)" : ""));
     var data = await res.json();
     var tree = data.tree || [];
@@ -304,7 +311,7 @@
 
     var footer = el("div", "chart-footer");
     var src = document.createElement("span");
-    src.textContent = "Fonte: " + (chart.source || (window.SITE_CONFIG || {}).sourceLabel || "PowerPoint");
+    src.textContent = "Fonte: " + (chart.source || (window.SITE_CONFIG || {}).sourceLabel || "FtM");
     var upd = document.createElement("span");
     upd.textContent = chart.updated ? ("Atualizado " + chart.updated) : "";
     footer.appendChild(src); footer.appendChild(upd);
@@ -431,7 +438,7 @@
       if (node && map[id]) node.textContent = map[id];
     });
     var srcNodes = document.querySelectorAll("[data-source-label]");
-    srcNodes.forEach(function (n) { n.textContent = "Fonte: " + (cfg.sourceLabel || "PowerPoint"); });
+    srcNodes.forEach(function (n) { n.textContent = "Fonte: " + (cfg.sourceLabel || "FtM"); });
     var updatedNodes = document.querySelectorAll("[data-updated-label]");
     var todayStr = new Date().toLocaleDateString("pt-BR");
     updatedNodes.forEach(function (n) { n.textContent = "Atualizado " + todayStr; });

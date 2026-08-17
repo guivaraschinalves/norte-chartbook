@@ -9,14 +9,14 @@ var SITE_CONFIG = {
   brandName: "Follow the Money",
   tagline: "Chart Book",
   pageTitle: "Balanço de Pagamentos do Brasil",
-  lede: "Conta corrente, conta financeira, conta capital e indicadores complementares — gráficos exportados do PowerPoint, publicados como imagem.",
-  sourceLabel: "BCB",
+  lede: "Conta corrente, conta financeira, conta capital e indicadores complementares.",
+  sourceLabel: "FtM",
 };
 
 // Onde o site vai procurar os gráficos: a pasta "charts/" deste repositório.
 var REPO_CONFIG = {
   owner: "guivaraschinalves",
-  repo: "norte-chartbook",
+  repo: "ftm-chartbook",
   branch: "master",
   chartsPath: "charts",
 };
